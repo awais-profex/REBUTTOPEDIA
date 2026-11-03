@@ -502,4 +502,41 @@ if(localStorage.getItem('rb_seen')){
 } else {
   let li = 0;
   function nextLine(){
-    if(li < LINES
+    if(li < LINES.length){
+      const div = document.createElement('div');
+      div.className='bl';
+      div.innerHTML = esc(LINES[li]) + ' <span class="ok">[OK]</span>';
+      bootlines.appendChild(div);
+      li++;
+      setTimeout(nextLine, 340);
+    } else {
+      /* progress bar */
+      let p = 0;
+      const iv = setInterval(()=>{
+        p += 5;
+        const full = Math.round(p/100*40);
+        bootbar.textContent = '█'.repeat(full) + '░'.repeat(40-full);
+        bootpct.textContent = p + '%';
+        if(p>=100){
+          clearInterval(iv);
+          /* type the final line with _ cursor */
+          const msg = '> Loading rebuttal archive';
+          let ci2 = 0;
+          boottype.innerHTML = '<span class="cursor">_</span>';
+          const iv2 = setInterval(()=>{
+            if(ci2 < msg.length){
+              boottype.innerHTML = esc(msg.slice(0,++ci2)) + '<span class="cursor">_</span>';
+            } else {
+              clearInterval(iv2);
+              setTimeout(killBoot, 650);
+            }
+          }, 28);
+        }
+      }, 55);
+    }
+  }
+  nextLine();
+}
+</script>
+</body>
+</html>
