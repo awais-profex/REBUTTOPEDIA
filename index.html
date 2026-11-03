@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#000000">
+<title>REBUTTOPEDIA — Final Expense Objection Archive</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#000000;
+    --green:#00ff41;
+    --dim:#008f11;
+    --orange:#ff9100;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;border-radius:0 !important;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--green);
+    font-family:'JetBrains Mono', monospace;
+    min-height:100vh;
+    overflow-x:hidden;
+  }
+  ::selection{background:var(--green);color:#000;}
+  a{color:var(--orange);}
+
+  /* ── CRT scanlines (hard-stop stripes, no gradient look) ── */
+  #crt{
+    position:fixed;inset:0;pointer-events:none;z-index:90;
+    background:repeating-linear-gradient(0deg, rgba(0,0,0,0.22) 0px, rgba(0,0,0,0.22) 1px, transparent 1px, transparent 3px);
+  }
+  body.crt-off #crt{display:none;}
+
+  /* ── BOOT LOADER ── */
+  #boot{
+    position:fixed;inset:0;background:#000;z-index:100;
+    display:flex;align-items:center;justify-content:center;
+    padding:20px;
+  }
+  #boot .win{width:100%;max-width:640px;font-size:14px;}
+  #boot .win .bl{margin:4px 0;white-space:pre-wrap;word-break:break-word;}
+  #boot .ok{color:var(--orange);font-weight:700;}
+  #boot .bar{color:var(--green);letter-spacing:1px;margin-top:14px;}
+  #boot .pct{color:var(--dim);}
+  #boot .skip{
+    margin-top:24px;color:var(--dim);font-size:12px;cursor:pointer;
+    display:inline-block;border:1px solid var(--dim);padding:8px 14px;
+    min-height:44px;line-height:28px;user-select:none;
+  }
+  #boot .skip:hover{border-color:var(--orange);color:var(--orange);}
+
+  /* ── CURSOR ── */
+  .cursor{animation:blink .7s steps(1) infinite;font-weight:400;}
+  @keyframes blink{50%{opacity:0;}}
+
+  /* ── LAYOUT ── */
+  .wrap{max-width:900px;margin:0 auto;padding:16px 20px 60px;}
+
+  .note{
+    font-size:12px;color:var(--dim);
+    border:1px solid var(--dim);
+    padding:10px 12px;margin-bottom:20px;
+    line-height:1.6;
+  }
+  .note .who{color:var(--orange);font-weight:700;}
+
+  header h1{
+    font-size:clamp(2.4rem, 9vw, 5rem);
+    font-weight:800;letter-spacing:2px;line-height:1;
+    text-shadow:0 0 8px rgba(0,255,65,0.55);
+  }
+  header .sub{
+    color:var(--orange);font-weight:700;
+    font-size:clamp(.7rem, 2.6vw, 1rem);
+    letter-spacing:1px;margin-top:8px;
+  }
+  header .tag{color:var(--dim);font-size:12px;margin-top:14px;letter-spacing:1px;}
+
+  /* ── TOOLBAR ── */
+  .toolbar{
+    display:flex;gap:10px;flex-wrap:wrap;
+    margin:26px 0 18px;
+  }
+  .toolbar input, .toolbar select{
+    background:#000;color:var(--green);
+    border:1px solid var(--dim);
+    font-family:inherit;font-size:14px;
+    padding:12px;height:46px;outline:none;
+  }
+  .toolbar input{flex:1;min-width:200px;}
+  .toolbar input:focus{border-color:var(--green);}
+  .toolbar select{cursor:pointer;}
+  .tbtn{
+    background:#000;border:1px solid var(--orange);color:var(--orange);
+    font-family:inherit;font-weight:700;font-size:12px;letter-spacing:1px;
+    padding:12px 14px;height:46px;cursor:pointer;user-select:none;
+  }
+  .tbtn:hover{background:var(--orange);color:#000;}
+  .tbtn.green{border-color:var(--dim);color:var(--dim);}
+  .tbtn.green:hover{background:var(--green);border-color:var(--green);color:#000;}
+
+  /* ── CARDS ── */
+  .card{border:1px solid var(--dim);margin-bottom:14px;}
+  .card.hidden{display:none;}
+  .card-head{
+    padding:16px;cursor:pointer;user-select:none;
+    min-height:44px;
+  }
+  .card-head:hover{background:rgba(0,255,65,0.04);}
+  .card-head .num{color:var(--orange);font-weight:700;margin-right:8px;}
+  .card-head .obj{
+    font-weight:800;font-size:clamp(.95rem, 3.4vw, 1.15rem);
+    letter-spacing:1px;text-shadow:0 0 6px rgba(0,255,65,0.4);
+  }
+  .card-head .meta{color:var(--dim);font-size:11px;margin-top:6px;}
+  .card-head .tog{float:right;color:var(--orange);font-weight:700;}
+  .card-body{border-top:1px solid var(--dim);padding:16px;display:none;}
+  .card.open .card-body{display:block;}
+
+  .lbl{color:var(--dim);font-size:11px;letter-spacing:2px;font-weight:700;margin:6px 0 8px;}
+  .script{
+    white-space:pre-wrap;word-break:break-word;
+    line-height:1.75;font-size:14px;margin-bottom:14px;
+  }
+  .script b.hl{
+    color:var(--green);font-weight:800;
+    text-shadow:0 0 7px rgba(0,255,65,0.8);
+  }
+  .copyrow{display:flex;justify-content:flex-end;margin:-6px 0 14px;}
+  .copy{
+    background:#000;border:1px solid var(--orange);color:var(--orange);
+    font-family:inherit;font-size:11px;font-weight:700;letter-spacing:1px;
+    padding:9px 14px;min-height:40px;cursor:pointer;user-select:none;
+  }
+  .copy:hover{background:var(--orange);color:#000;}
+  .copy.done{border-color:var(--green);color:var(--green);}
+  .copy.done:hover{background:var(--green);color:#000;}
+
+  .sit{border:1px solid var(--dim);margin-top:10px;}
+  .sit-head{
+    padding:13px 14px;cursor:pointer;user-select:none;min-height:44px;
+    color:var(--green);font-weight:700;font-size:13px;
+  }
+  .sit-head:hover{background:rgba(0,255,65,0.04);}
+  .sit-head .plus{color:var(--orange);margin-right:8px;font-weight:800;}
+  .sit-body{border-top:1px solid var(--dim);padding:14px;display:none;}
+  .sit.open .sit-body{display:block;}
+
+  .noresult{color:var(--dim);border:1px solid var(--dim);padding:20px;text-align:center;display:none;}
+
+  /* ── FOOTER ── */
+  footer{
+    border-top:1px solid var(--dim);margin-top:30px;padding-top:16px;
+    color:var(--dim);font-size:12px;line-height:2;
+  }
+  footer .cmd{color:var(--green);cursor:pointer;text-decoration:none;}
+  footer .cmd:hover{color:var(--orange);}
+
+  /* ── MOBILE ── */
+  @media (max-width:768px){
+    .wrap{padding:14px 14px 50px;}
+    .toolbar input{min-width:100%;}
+    .toolbar select{flex:1;}
+    .tbtn{flex:1;padding:12px 8px;}
+  }
+  @media (max-width:400px){
+    .script{font-size:13px;}
+  }
+</style>
+</head>
+<body>
+
+<div id="crt"></div>
+
+<!-- BOOT LOADER -->
+<div id="boot">
+  <div class="win">
+    <div class="bl" style="color:var(--dim)">root@rebuttopedia:~$ ./init.sh</div>
+    <div class="bl" style="color:var(--dim)">────────────────────────────────────────</div>
+    <div id="bootlines"></div>
+    <div class="bar"><span id="bootbar"></span> <span class="pct" id="bootpct"></span></div>
+    <div class="bl" id="boottype" style="margin-top:14px"></div>
+    <div class="skip" id="bootskip">[ SKIP &gt;&gt; ]</div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="note"><span class="who">Awais:</span> Remember me in your prayers agents. Wish you luck for your sales :)</div>
+
+  <header>
+    <h1>REBUTTOPEDIA</h1>
+    <div class="sub">PROJECT BY A TRAINER (MUHAMMAD AWAIS)</div>
+    <div class="tag">&gt; FINAL EXPENSE OBJECTION HANDLING ARCHIVE<span class="cursor">_</span></div>
+  </header>
+
+  <div class="toolbar">
+    <input type="text" id="search" placeholder="&gt; SEARCH OBJECTIONS..." autocomplete="off">
+    <select id="filter">
+      <option value="all">FILTER: ALL</option>
+      <option value="multi">MULTI-SITUATION</option>
+      <option value="single">SINGLE SCRIPT</option>
+    </select>
+    <button class="tbtn" id="expandall">[ STUDY MODE ]</button>
+    <button class="tbtn green" id="collapseall">[ COLLAPSE ALL ]</button>
+  </div>
+
+  <main id="cards"></main>
+  <div class="noresult" id="noresult">&gt; NO MATCHING OBJECTIONS FOUND_</div>
+
+  <footer>
+    <div id="footcount"></div>
+    <div>LAST UPDATE: 2026-11-03</div>
+    <div>
+      <a class="cmd" id="totop">root@rebuttopedia:~$ cd /top</a>
+      &nbsp;&nbsp;|&nbsp;&nbsp;
+      <a class="cmd" id="crttog">[ CRT: ON ]</a>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   DATA — HOW TO ADD A NEW OBJECTION:
+   Copy one block below, change the id, objection, opening,
+   and situations. Wrap IMPORTANT words in [[double brackets]]
+   to highlight them green. That's it. The page does the rest.
+   ══════════════════════════════════════════════════════════════ */
+const REBUTTALS = [
+  {
+    id: 1,
+    objection: "NOT INTERESTED",
+    opening: `Agent: "Mhmm... No problem. Most of the people I talk to aren't interested at first. So, to understand this better, let me ask you: are you not interested because you [[already have a plan]], or do you think what we're offering [[isn't worth your money]]?"`,
+    situations: [
+      {
+        label: "SITUATION 1: ALREADY INSURED",
+        script: `Agent: "Mhmm... It's a good thing that you're already insured; that means you [[understand your responsibilities]]. And I can understand why you might think what we offer couldn't be better than what you already have. Maybe you're right, or maybe not - because we work with [[40 different insurance carriers]]. I can find you the [[best plan]] with the [[most benefits]] possible for the [[least amount of money]].
+
+I'm very confident our plan can beat the one you currently have, but let's not make any commitments. Let's just look at what the best plan and price we can offer are. If you see something good in it, then go ahead; otherwise, we'll leave it at that. There's [[no cost and no obligation]]."`
+      },
+      {
+        label: "SITUATION 2: VALUE / SKEPTICAL ABOUT PRICE",
+        script: `Agent: "Mhmm... I completely understand that it's hard to believe someone is calling you out of the blue with the best plan ready, especially with hundreds of companies offering final expense insurance.
+
+But what I can tell you is that we work with [[40 different top-rated insurance companies]]. That means I can shop around [[40 different options]] for you to find the [[absolute best deal]] in the market. Still, if you don't like the plan, you can just walk away, and we will [[never, ever bother you]] about it again."`
+      }
+    ]
+  },
+  {
+    id: 2,
+    objection: "I'M BUSY",
+    opening: `Agent: "Oh, I'm really sorry to catch you at a bad time. I actually received a call a minute ago and have to visit someone in the hospital, so [[I'm in a bit of a hurry myself]]! I'll make this as [[quick as possible]] for both of us."`,
+    situations: []
+  },
+  {
+    id: 3,
+    objection: "I'M A VETERAN",
+    opening: `Agent: "Oh, really? [[Thank you so much for serving our country]], and I'm very glad to have you on the call with me today.
+
+I understand you might have certain benefits from the state, but most of the time, when I speak with veterans over the phone, they're looking to get a policy for things [[beyond just a funeral and burial]] - like leaving [[money behind for their kids or family]] as a final gift of love to show they're always remembered."`,
+    situations: []
+  },
+  {
+    id: 4,
+    objection: "WHERE ARE YOU CALLING FROM?",
+    opening: `Agent: "I'm calling you from [[Senior Solutions in Miami, Florida]]. The great thing is that we operate [[nationwide]], so I'll connect you with the [[best licensed agent]] right in your state. What is your zip code?"`,
+    situations: []
+  },
+  {
+    id: 5,
+    objection: "WHY DON'T YOU HAVE MY NAME?",
+    opening: `Agent: "Well, I really should have your name here, but for some reason, it didn't pull up - must be a [[glitch in the system]], and I truly apologize for that, sir! I just need to gather a few quick details so I can prep everything for the licensed agent before bringing them on. [[How do you spell your full name?]]"`,
+    situations: []
+  }
+];
+/* ══════════════ PASTE NEW OBJECTION BLOCKS ABOVE THIS LINE ══════════════ */
+
+const isMobile = window.innerWidth <= 768;
+const TYPE_SPEED = isMobile ? 9 : 14;
+const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const stripMarks = s => s.replace(/\[\[(.+?)\]\]/g,'$1');
+
+/* ── typing engine (one session at a time, cancellable) ── */
+let typeSession = 0;
+function parseSegs(text){
+  const segs=[]; const re=/\[\[(.+?)\]\]/g; let last=0,m;
+  while((m=re.exec(text))){
+    if(m.index>last) segs.push({t:text.slice(last,m.index),h:false});
+    segs.push({t:m[1],h:true});
+    last=m.index+m[0].length;
+  }
+  if(last<text.length) segs.push({t:text.slice(last),h:false});
+  return segs;
+}
+function typeInto(el, text, onDone){
+  const session = ++typeSession;
+  const segs = parseSegs(text);
+  let si=0, ci=0;
+  function frame(){
+    if(session!==typeSession) return;              // cancelled by newer typing
+    if(si>=segs.length){
+      el.querySelector('.cursor')?.remove();
+      onDone && onDone();
+      return;
+    }
+    let html='';
+    for(let i=0;i<segs.length;i++){
+      const typed = i<si ? segs[i].t : (i===si ? segs[i].t.slice(0,ci) : '');
+      if(!typed) continue;
+      html += segs[i].h ? '<b class="hl">'+esc(typed)+'</b>' : esc(typed);
+    }
+    el.innerHTML = html + '<span class="cursor">_</span>';
+    ci++;
+    if(ci>segs[si].t.length){ si++; ci=0; }
+    setTimeout(frame, TYPE_SPEED);
+  }
+  frame();
+}
+function instant(el, text){
+  typeSession++; // cancel any active typing
+  let html='';
+  parseSegs(text).forEach(s=>{
+    html += s.h ? '<b class="hl">'+esc(s.t)+'</b>' : esc(s.t);
+  });
+  el.innerHTML = html;
+}
+
+/* ── build cards ── */
+const main = document.getElementById('cards');
+REBUTTALS.forEach((r,idx)=>{
+  const num = String(idx+1).padStart(2,'0');
+  const card = document.createElement('div');
+  card.className='card';
+  card.dataset.idx = idx;
+  card.dataset.search = (r.objection+' '+r.opening+' '+r.situations.map(s=>s.label+' '+s.script).join(' ')).toLowerCase();
+  card.dataset.kind = r.situations.length ? 'multi' : 'single';
+
+  const sitHTML = r.situations.map((s,i)=>`
+    <div class="sit" data-i="${i}">
+      <div class="sit-head"><span class="plus">[+]</span>${esc(stripMarks(s.label))}</div>
+      <div class="sit-body">
+        <div class="copyrow"><button class="copy">[ COPY ]</button></div>
+        <div class="lbl">&gt; AGENT SCRIPT_</div>
+        <div class="script"></div>
+      </div>
+    </div>`).join('');
+
+  card.innerHTML = `
+    <div class="card-head">
+      <span class="tog">[+]</span>
+      <span class="num">[${num}]</span>
+      <span class="obj">${esc(r.objection)}</span>
+      <div class="meta">&gt; ${r.situations.length ? r.situations.length+' SITUATION'+(r.situations.length>1?'S':'')+' ATTACHED' : 'SINGLE SCRIPT — TAP TO TYPE'}</div>
+    </div>
+    <div class="card-body">
+      <div class="copyrow"><button class="copy">[ COPY ]</button></div>
+      <div class="lbl">&gt; OPENING REBUTTAL_</div>
+      <div class="script"></div>
+      ${sitHTML}
+    </div>`;
+
+  const body = card.querySelector('.card-body');
+  const head = card.querySelector('.card-head');
+  const tog  = card.querySelector('.tog');
+  const script = card.querySelector('.script');
+  const copyBtn = card.querySelector('.copy');
+
+  head.addEventListener('click', ()=>{
+    const opening = card.classList.toggle('open');
+    tog.textContent = opening ? '[-]' : '[+]';
+    if(opening && !script.dataset.done){
+      typeInto(script, r.opening, ()=>{ script.dataset.done='1'; });
+    } else if(opening){
+      instant(script, r.opening); // already typed before, show instantly
+    }
+    if(!opening) typeSession++; // stop typing when closed
+  });
+
+  copyBtn.addEventListener('click', e=>{
+    e.stopPropagation();
+    navigator.clipboard.writeText(stripMarks(r.opening)).then(()=>{
+      copyBtn.textContent='[ COPIED ]'; copyBtn.classList.add('done');
+      setTimeout(()=>{copyBtn.textContent='[ COPY ]';copyBtn.classList.remove('done');},1600);
+    });
+  });
+
+  /* situation sub-toggles */
+  card.querySelectorAll('.sit').forEach(sitEl=>{
+    const i = +sitEl.dataset.i;
+    const sHead = sitEl.querySelector('.sit-head');
+    const sBody = sitEl.querySelector('.sit-body');
+    const sScript = sitEl.querySelector('.script');
+    const sCopy = sitEl.querySelector('.copy');
+    sHead.addEventListener('click', e=>{
+      e.stopPropagation();
+      const opening2 = sitEl.classList.toggle('open');
+      sHead.querySelector('.plus').textContent = opening2 ? '[-]' : '[+]';
+      if(opening2 && !sScript.dataset.done){
+        typeInto(sScript, r.situations[i].script, ()=>{ sScript.dataset.done='1'; });
+      } else if(opening2){
+        instant(sScript, r.situations[i].script);
+      }
+      if(!opening2) typeSession++;
+    });
+    sCopy.addEventListener('click', e=>{
+      e.stopPropagation();
+      navigator.clipboard.writeText(stripMarks(r.situations[i].script)).then(()=>{
+        sCopy.textContent='[ COPIED ]'; sCopy.classList.add('done');
+        setTimeout(()=>{sCopy.textContent='[ COPY ]';sCopy.classList.remove('done');},1600);
+      });
+    });
+  });
+
+  main.appendChild(card);
+});
+
+/* ── search + filter ── */
+const searchEl = document.getElementById('search');
+const filterEl = document.getElementById('filter');
+const noresult = document.getElementById('noresult');
+function applyFilter(){
+  const q = searchEl.value.trim().toLowerCase();
+  const f = filterEl.value;
+  let visible = 0;
+  document.querySelectorAll('.card').forEach(c=>{
+    const okQ = !q || c.dataset.search.includes(q);
+    const okF = f==='all' || c.dataset.kind===f;
+    const show = okQ && okF;
+    c.classList.toggle('hidden', !show);
+    if(show) visible++;
+  });
+  noresult.style.display = visible ? 'none' : 'block';
+  document.getElementById('footcount').textContent =
+    visible+' / '+REBUTTALS.length+' OBJECTIONS LOADED';
+}
+searchEl.addEventListener('input', applyFilter);
+filterEl.addEventListener('change', applyFilter);
+applyFilter();
+
+/* ── study mode / collapse all ── */
+document.getElementById('expandall').addEventListener('click', ()=>{
+  document.querySelectorAll('.card').forEach(c=>{
+    if(c.classList.contains('hidden')) return;
+    c.classList.add('open');
+    c.querySelector('.tog').textContent='[-]';
+    const r = REBUTTALS[+c.dataset.idx];
+    instant(c.querySelector('.script'), r.opening);
+    c.querySelector('.script').dataset.done='1';
+    c.querySelectorAll('.sit').forEach((sitEl,i)=>{
+      sitEl.classList.add('open');
+      sitEl.querySelector('.plus').textContent='[-]';
+      instant(sitEl.querySelector('.script'), r.situations[i].script);
+      sitEl.querySelector('.script').dataset.done='1';
+    });
+  });
+});
+document.getElementById('collapseall').addEventListener('click', ()=>{
+  typeSession++;
+  document.querySelectorAll('.card, .sit').forEach(c=>c.classList.remove('open'));
+  document.querySelectorAll('.tog').forEach(t=>t.textContent='[+]');
+  document.querySelectorAll('.plus').forEach(p=>p.textContent='[+]');
+});
+
+/* ── footer controls ── */
+document.getElementById('totop').addEventListener('click', ()=>window.scrollTo({top:0,behavior:'smooth'}));
+const crtTog = document.getElementById('crttog');
+crtTog.addEventListener('click', ()=>{
+  document.body.classList.toggle('crt-off');
+  crtTog.textContent = document.body.classList.contains('crt-off') ? '[ CRT: OFF ]' : '[ CRT: ON ]';
+});
+
+/* ══ BOOT LOADER ══ */
+const boot = document.getElementById('boot');
+const bootlines = document.getElementById('bootlines');
+const bootbar = document.getElementById('bootbar');
+const bootpct = document.getElementById('bootpct');
+const boottype = document.getElementById('boottype');
+
+function killBoot(){
+  localStorage.setItem('rb_seen','1');
+  boot.style.transition='opacity .4s';
+  boot.style.opacity='0';
+  setTimeout(()=>boot.remove(), 420);
+}
+document.getElementById('bootskip').addEventListener('click', killBoot);
+
+const LINES = [
+  '> Establishing secure connection to objection database...',
+  '> Decrypting rebuttal protocols...',
+  '> Compiling final expense scripts...',
+  '> Injecting trainer modules (M.Awais)...',
+  '> Prayer note loaded: agents luck +1...'
+];
+
+if(localStorage.getItem('rb_seen')){
+  /* returning visitor — quick flash only */
+  setTimeout(killBoot, 700);
+} else {
+  let li = 0;
+  function nextLine(){
+    if(li < LINES
